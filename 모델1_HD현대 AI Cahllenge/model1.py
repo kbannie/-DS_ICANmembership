@@ -136,52 +136,6 @@ ship_train[cols]= (ship_train[cols]-ship_train[cols].mean())/ship_train[cols].st
 ship_train.head()
 # -
 
-#testset도 동일하게 진행
-ship_test=pd.read_csv('./data/test.csv', encoding='utf8')
-len(ship_test)-ship_test.count()
-
-# +
-#U_WIND 평균값 구해서 null인 곳에 해당 값 넣기
-U_mean=ship_test['U_WIND'].mean()
-ship_test['U_WIND'] = ship_test['U_WIND'].fillna(U_mean)
-
-#V_WIND 평균값 구해서 null인 곳에 해당 값 넣기
-V_mean=ship_test['V_WIND'].mean()
-ship_test['V_WIND'] = ship_test['V_WIND'].fillna(V_mean)
-
-#AIR_TEMPERATURE 평균값 구해서 null인 곳에 해당 값 넣기
-A_mean=ship_test['AIR_TEMPERATURE'].mean()
-ship_test['AIR_TEMPERATURE'] = ship_test['AIR_TEMPERATURE'].fillna(A_mean)
-
-#BN 평균값 구해서 null인 곳에 해당 값 넣기
-B_mean=ship_test['BN'].mean()
-ship_test['BN'] = ship_test['BN'].fillna(B_mean)
-
-len(ship_test)-ship_test.count()
-
-# +
-#라. 이상치 제거
-
-
-cols = ['DIST', 'BREADTH', 'BUILT', 'DEADWEIGHT', 'LENGTH', 'U_WIND', 'V_WIND', 'AIR_TEMPERATURE', 'BN', 'ATA_LT', 'PORT_SIZE']
-
-ship_test = ship_test.copy()
-
-for column in cols:
-    z_score_column = column + '_z_score'
-    ship_test[z_score_column] = zscore(ship_test[column])
-    ship_test = ship_test[abs(ship_test[z_score_column]) <= 3].drop(z_score_column, axis=1)
-
-len(ship_test)
-
-# +
-#마. 정규화 작업
-cols=['DIST','BREADTH','BUILT','DEADWEIGHT','LENGTH','U_WIND','V_WIND','AIR_TEMPERATURE','BN','ATA_LT','PORT_SIZE']
-
-ship_test[cols]= (ship_test[cols]-ship_test[cols].mean())/ship_test[cols].std()
-ship_test.head()
-# -
-
 # ## 2. 모델링
 # ### 가. 변수 선택
 # 1) 요소들을 영향 정도를 파악하기 위해 pariplot을 이용하여 관계 확인
@@ -222,26 +176,27 @@ ship_train[colhigh].head()
 new_ship=ship_train[colhigh]
 new_ship.head()
 
-new_ship_test=ship_test[['DIST', 'BREADTH', 'DEADWEIGHT', 'DEPTH', 'DRAUGHT',
-       'PORT_SIZE']]
-new_ship_test.head()
+# +
+# new_ship_test=ship_test[['DIST', 'BREADTH', 'DEADWEIGHT', 'DEPTH', 'DRAUGHT',
+#        'PORT_SIZE']]
+# new_ship_test.head()
 
 # +
-# RandomForestRegressor 활용
-ytrain=new_ship.y_CI_HOUR
-Xtrain=new_ship.iloc[:,1:]
+# # RandomForestRegressor 활용
+# ytrain=new_ship.y_CI_HOUR
+# Xtrain=new_ship.iloc[:,1:]
 
-Xtest=new_ship_test
+# Xtest=new_ship_test
 
 # +
 #시간 관계상 해당 예측값은 중지시킴
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-model = RandomForestRegressor()
-model.fit(Xtrain, ytrain)
+# from sklearn.ensemble import RandomForestRegressor
+# from sklearn.metrics import mean_squared_error
+# model = RandomForestRegressor()
+# model.fit(Xtrain, ytrain)
 
-predictions=model.predict(Xtest) #예측값 산출
-predictions
+# predictions=model.predict(Xtest) #예측값 산출
+# predictions
 
 # +
 #GAM 활용
@@ -357,3 +312,94 @@ plt.show()
 # -
 
 np.mean((ytest - gam.predict(Xtest))**2)
+
+gam.predict(Xtest)
+
+Xtest
+
+# ## Test 제출하기
+
+# +
+#test 결측치 처리하기
+ship_test=pd.read_csv('./data/test.csv', encoding='utf8')
+len(ship_test)-ship_test.count()
+
+#U_WIND 평균값 구해서 null인 곳에 해당 값 넣기
+U_mean=ship_test['U_WIND'].mean()
+ship_test['U_WIND'] = ship_test['U_WIND'].fillna(U_mean)
+
+#V_WIND 평균값 구해서 null인 곳에 해당 값 넣기
+V_mean=ship_test['V_WIND'].mean()
+ship_test['V_WIND'] = ship_test['V_WIND'].fillna(V_mean)
+
+#AIR_TEMPERATURE 평균값 구해서 null인 곳에 해당 값 넣기
+A_mean=ship_test['AIR_TEMPERATURE'].mean()
+ship_test['AIR_TEMPERATURE'] = ship_test['AIR_TEMPERATURE'].fillna(A_mean)
+
+#BN 평균값 구해서 null인 곳에 해당 값 넣기
+B_mean=ship_test['BN'].mean()
+ship_test['BN'] = ship_test['BN'].fillna(B_mean)
+
+len(ship_test)-ship_test.count()
+
+#마. 정규화 작업
+cols=['DIST','BREADTH','BUILT','DEADWEIGHT','LENGTH','U_WIND','V_WIND','AIR_TEMPERATURE','BN','ATA_LT','PORT_SIZE']
+
+ship_test[cols]= (ship_test[cols]-ship_test[cols].mean())/ship_test[cols].std()
+ship_test
+
+
+# +
+ship_test['ARI_CO'].value_counts()
+
+pd.set_option('display.max_rows', None)  # 모든 행을 출력하도록 설정
+
+flag_counts = ship_test['FLAG'].value_counts()
+
+pd.reset_option('display.max_rows')
+
+ship_test['FLAG']=ship_test['FLAG'].str.split(' & ').str[0] #flag의 & 데이터 처리
+
+ari_co_counts = ship_test['ARI_CO'].value_counts()
+ship_test['ari_co_counts'] = ship_test['ARI_CO'].map(ari_co_counts)
+
+flag_counts=ship_test['FLAG'].value_counts()
+ship_test['flag_counts'] = ship_test['FLAG'].map(flag_counts)
+
+ship_test.columns
+
+# +
+# 예측값 산출
+new_ship_test=ship_test[['DIST', 'BREADTH', 'BUILT', 'DEADWEIGHT', 'DEPTH',
+       'DRAUGHT', 'GT', 'LENGTH', 'PORT_SIZE', 'ari_co_counts', 'flag_counts']]
+
+new_ship_test.dtypes
+predictions = gam.predict(new_ship_test)
+
+# -
+
+predictions
+
+new_ship_test
+
+Xtest
+
+ship_test
+
+# +
+# Xtest에 있는 'sample_ID'를 가져오기 (가정)
+sample_IDs = ship_test['SAMPLE_ID']
+
+# 'sample_ID'와 'predictions'를 포함하는 DataFrame 생성
+top_predictions = pd.DataFrame({'SAMPLE_ID': sample_IDs, 'CI_HOUR': predictions})
+# -
+
+top_predictions
+
+top_predictions['CI_HOUR'] = top_predictions['CI_HOUR'].apply(lambda x: max(0, x))
+top_predictions
+
+# CSV 파일로 저장
+top_predictions.to_csv('./sample_submission.csv', index=False)
+
+
